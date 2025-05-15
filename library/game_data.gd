@@ -1,6 +1,5 @@
 class_name GameData
 
-
 const MIN_AMMO: int = 0
 const MAGAZINE: int = 1
 const MAX_AMMO: int = 3
@@ -18,7 +17,8 @@ const MIN_PROGRESS_BAR: int = 0
 const MAX_PROGRES_BAR: int = 3
 
 const MAX_SPAWN_DURATION: int = 3
-const MIN_DISTANCE_TO_PC: int = 7
+const MIN_DISTANCE_TO_PC: int = PC_SIGHT_RANGE
+const MAX_DISTANCE_TO_PC: int = PC_SIGHT_RANGE * 2
 
 const HIT_DAMAGE: int = 2
 const NPC_SIGHT_RANGE: int = 10

@@ -1,77 +1,90 @@
 class_name PcAction
 extends Node2D
 
-
-signal ui_force_updated()
-
+signal ui_force_updated
 
 enum {
 	NORMAL_MODE,
 	AIM_MODE,
 }
 
-
 var ammo: int:
 	get:
 		return _ammo
-
 
 var alert_duration: int:
 	get:
 		return _alert_duration
 
-
 var alert_coord: Vector2i:
 	get:
 		return _alert_coord
-
 
 var enemy_count: int:
 	get:
 		return _enemy_count
 
-
 var progress_bar: int:
 	get:
 		return _progress_bar
 
-
-var _ref_ActorAction: ActorAction
-var _ref_GameProgress: GameProgress
-
-@onready var _ref_PcFov: PcFov = $PcFov
-
-
-var _pc: Sprite2D
 var _ammo: int = GameData.MAGAZINE
-var _game_mode: int = NORMAL_MODE
 var _alert_duration: int = 0
 var _alert_coord: Vector2i
 var _enemy_count: int = GameData.MIN_ENEMY_COUNT
 var _progress_bar: int = GameData.MIN_PROGRESS_BAR
 
+var _is_first_turn: bool = true
+var _fov_map: Dictionary = Map2D.init_map(PcFov.DEFAULT_FOV_FLAG)
+var _shadow_cast_fov_data: ShadowCastFov.FovData = ShadowCastFov.FovData.new(GameData.PC_SIGHT_RANGE)
+var _cross_fov_data: CrossFov.FovData = (
+	CrossFov
+	.FovData
+	.new(
+		GameData.CROSS_FOV_WIDTH,
+		GameData.PC_AIM_RANGE,
+		GameData.PC_AIM_RANGE,
+		GameData.PC_AIM_RANGE,
+		GameData.PC_AIM_RANGE,
+	)
+)
 
-func _on_SpriteFactory_sprite_created(tagged_sprites: Array) -> void:
-	if _pc != null:
-		return
 
+func render_fov() -> void:
+	PcFov.render_fov(NodeHub.ref_DataHub.pc, _fov_map, _cross_fov_data, _shadow_cast_fov_data)
+
+
+func _on_SignalHub_sprite_created(tagged_sprites: Array) -> void:
 	for i: TaggedSprite in tagged_sprites:
-		if i.sub_tag == SubTag.PC:
-			_pc = i.sprite
-			return
+		match i.sub_tag:
+			SubTag.PC:
+				if NodeHub.ref_DataHub.pc != null:
+					continue
+				NodeHub.ref_DataHub.set_pc(i.sprite)
 
 
-func _on_Schedule_turn_started(sprite: Sprite2D) -> void:
+func _on_SignalHub_turn_started(sprite: Sprite2D) -> void:
 	if not sprite.is_in_group(SubTag.PC):
 		return
-	_ref_GameProgress.try_spawn_npc(_pc)
-	_ref_PcFov.render_fov(_pc, _game_mode)
+
+	# Wait 1 frame when the very first turn starts, so that sprites from the
+	# previous scene are properly removed.
+	if _is_first_turn:
+		await get_tree().create_timer(0).timeout
+		_is_first_turn = false
+
+	GameProgress.update_world(NodeHub.ref_DataHub, NodeHub.ref_RandomNumber)
+
+	render_fov()
+
 	_alert_duration = max(0, _alert_duration - 1)
 	# print("%d, %d" % [enemy_count, progress_bar])
 
 
-func _on_PlayerInput_action_pressed(input_tag: StringName) -> void:
+func _on_SignalHub_action_pressed(input_tag: StringName) -> void:
 	var coord: Vector2i
+	var pc: Sprite2D = NodeHub.ref_DataHub.pc
+	var game_mode: int = NodeHub.ref_DataHub.game_mode
 
 	match input_tag:
 		InputTag.ADD_AMMO:
@@ -83,8 +96,8 @@ func _on_PlayerInput_action_pressed(input_tag: StringName) -> void:
 			ui_force_updated.emit()
 			return
 		InputTag.AIM:
-			_game_mode = _aim(_pc, _ammo, _game_mode)
-			_ref_PcFov.render_fov(_pc, _game_mode)
+			NodeHub.ref_DataHub.set_game_mode(_aim(pc, _ammo, game_mode))
+			render_fov()
 			return
 		InputTag.MOVE_LEFT:
 			coord = Vector2i.LEFT
@@ -97,13 +110,13 @@ func _on_PlayerInput_action_pressed(input_tag: StringName) -> void:
 		_:
 			return
 
-	coord += ConvertCoord.get_coord(_pc)
-	match _game_mode:
+	coord += ConvertCoord.get_coord(pc)
+	match game_mode:
 		AIM_MODE:
-			_game_mode = _aim(_pc, _ammo, _game_mode)
-			_ammo = _shoot(_pc, coord, _ammo)
-			if _game_mode == NORMAL_MODE:
-				_alert_hound(_pc)
+			game_mode = _aim(pc, _ammo, game_mode)
+			_ammo = _shoot(pc, coord, _ammo)
+			if game_mode == NORMAL_MODE:
+				_alert_hound(pc)
 				_end_turn()
 			return
 		NORMAL_MODE:
@@ -114,24 +127,40 @@ func _on_PlayerInput_action_pressed(input_tag: StringName) -> void:
 			# If there is a trap under an actor, interact with the actor rather
 			# than the trap.
 			elif SpriteState.has_actor_at_coord(coord):
-				_kick_back(_pc, coord)
+				_kick_back(pc, coord)
 				_end_turn()
 				return
 			elif SpriteState.has_trap_at_coord(coord):
-				_ammo = _pick_ammo(_pc, coord, _ammo)
+				_ammo = _pick_ammo(pc, coord, _ammo)
 				# print(ammo)
 				_end_turn()
 				return
-			_move(_pc, coord)
+			_move(coord)
 			_end_turn()
 			return
 
 
-func _on_GameProgress_game_over(player_win: bool) -> void:
-	_ref_PcFov.render_fov(_pc, _game_mode)
+func _on_SignalHub_game_over(player_win: bool) -> void:
+	render_fov()
 	if not player_win:
-		VisualEffect.set_dark_color(_pc)
+		VisualEffect.set_dark_color(NodeHub.ref_DataHub.pc)
 
+# func _handle_normal_input(input_tag: StringName) -> bool:
+# 	match input_tag:
+# 		InputTag.MOVE_LEFT:
+# 			_move(Vector2i.LEFT)
+# 		InputTag.MOVE_RIGHT:
+# 			_move(Vector2i.RIGHT)
+# 		InputTag.MOVE_UP:
+# 			_move(Vector2i.UP)
+# 		InputTag.MOVE_DOWN:
+# 			_move(Vector2i.DOWN)
+# 		_:
+# 			return true
+# 	return true
+
+# func _handle_aim_input(input_tag: StringName) -> bool:
+# 	return true
 
 func _pick_ammo(pc: Sprite2D, coord: Vector2i, current_ammo: int) -> int:
 	SpriteFactory.remove_sprite(SpriteState.get_trap_by_coord(coord))
@@ -160,8 +189,7 @@ func _shoot(pc: Sprite2D, coord: Vector2i, current_ammo: int) -> int:
 	var target_coord: Vector2i
 	var actor: Sprite2D
 
-	coords = CastRay.get_coords(ConvertCoord.get_coord(pc), coord,
-			_block_shoot_ray, [])
+	coords = CastRay.get_coords(ConvertCoord.get_coord(pc), coord, _block_shoot_ray, [])
 	coords = CastRay.trim_coords(coords, true, true)
 
 	if not coords.is_empty():
@@ -178,8 +206,7 @@ func _kick_back(pc: Sprite2D, coord: Vector2i) -> void:
 	var actor: Sprite2D = SpriteState.get_actor_by_coord(coord)
 	var new_trap_coord: Vector2i
 
-	coords = CastRay.get_coords(ConvertCoord.get_coord(pc), coord,
-			_block_hit_back_ray, [])
+	coords = CastRay.get_coords(ConvertCoord.get_coord(pc), coord, _block_hit_back_ray, [])
 	coords = CastRay.trim_coords(coords, true, false)
 	target_coord = coords.back()
 
@@ -190,10 +217,11 @@ func _kick_back(pc: Sprite2D, coord: Vector2i) -> void:
 		_kill_hound(actor, new_trap_coord)
 	else:
 		SpriteState.move_sprite(actor, target_coord)
-		_ref_ActorAction.hit_actor(actor)
+		NodeHub.ref_ActorAction.hit_actor(actor)
 
 
-func _move(pc: Sprite2D, coord: Vector2i) -> void:
+func _move(coord: Vector2i) -> void:
+	var pc: Sprite2D = NodeHub.ref_DataHub.pc
 	SpriteState.move_sprite(pc, coord)
 
 
@@ -207,17 +235,14 @@ func _is_impassable(coord: Vector2i) -> bool:
 	return false
 
 
-func _block_shoot_ray(_source_coord: Vector2i, target_coord: Vector2i,
-		_args: Array) -> bool:
+func _block_shoot_ray(_source_coord: Vector2i, target_coord: Vector2i, _args: Array) -> bool:
 	return _is_impassable(target_coord)
 
 
-func _block_hit_back_ray(source_coord: Vector2i, target_coord: Vector2i,
-		_args: Array) -> bool:
+func _block_hit_back_ray(source_coord: Vector2i, target_coord: Vector2i, _args: Array) -> bool:
 	var ray_length_squared: int = (source_coord - target_coord).length_squared()
 
-	if DungeonSize.is_in_dungeon(target_coord) and \
-			SpriteState.has_trap_at_coord(target_coord):
+	if DungeonSize.is_in_dungeon(target_coord) and SpriteState.has_trap_at_coord(target_coord):
 		SpriteFactory.remove_sprite(SpriteState.get_trap_by_coord(target_coord))
 
 	if ray_length_squared == 1:
@@ -236,7 +261,7 @@ func _kill_hound(sprite: Sprite2D, coord: Vector2i) -> void:
 func _end_turn() -> void:
 	_subtract_progress_bar()
 	if _enemy_count >= GameData.MAX_ENEMY_COUNT:
-		_ref_GameProgress.game_over.emit(true)
+		NodeHub.ref_SignalHub.game_over.emit(true)
 	else:
 		NodeHub.ref_Schedule.start_next_turn()
 

@@ -3,21 +3,21 @@ extends Node2D
 
 
 func _ready() -> void:
-		_connect_signals(NodeReference.SIGNAL_CONNECTIONS)
-		# _connect_nodes(NodeReference.NODE_CONNECTIONS)
-		_set_node_hub(NodeReference.NODE_NAMES)
+	_connect_signals(NodeReference.SIGNAL_CONNECTIONS)
+	# _connect_nodes(NodeReference.NODE_CONNECTIONS)
+	_set_node_hub(NodeReference.NODE_NAMES)
 
-		if TransferData.load_setting_file:
-				SettingFile.load()
-				TransferData.set_load_setting_file(false)
+	if TransferData.load_setting_file:
+		SettingFile.load()
+		TransferData.set_load_setting_file(false)
 
-		VisualEffect.set_background_color()
-		$RandomNumber.set_initial_seed(TransferData.rng_seed)
-		$InitWorld.create_world()
-		$Sidebar.init_gui()
-		$HelpScreen.init_gui()
-		$DebugScreen.init_gui()
-		$Schedule.start_next_turn()
+	VisualEffect.set_background_color()
+	$RandomNumber.set_initial_seed(TransferData.rng_seed)
+	$InitWorld.create_world()
+	$Sidebar.init_gui()
+	$HelpScreen.init_gui()
+	$DebugScreen.init_gui()
+	$Schedule.start_next_turn()
 
 
 func _connect_signals(signal_connections: Dictionary) -> void:
@@ -34,13 +34,12 @@ func _connect_signals(signal_connections: Dictionary) -> void:
 
 			for target_node: String in target_nodes:
 				source_signal = get_node(source_node)[signal_name]
-				target_function = get_node(target_node)["_on_" +
-								Array(source_node.split("/")).pop_back() + "_" +
-								signal_name]
+				target_function = get_node(target_node)[
+					"_on_" + Array(source_node.split("/")).pop_back() + "_" + signal_name
+				]
 
 				if source_signal.connect(target_function) == ERR_INVALID_PARAMETER:
-					push_error("Signal error: %s -> %s, %s." %
-									[source_node, target_node, signal_name])
+					push_error("Signal error: %s -> %s, %s." % [source_node, target_node, signal_name])
 
 
 #func _connect_nodes(node_connections: Dictionary) -> void:
@@ -55,8 +54,8 @@ func _connect_signals(signal_connections: Dictionary) -> void:
 
 
 func _set_node_hub(node_names: Array) -> void:
-		var ref_node: String
+	var ref_node: String
 
-		for i: String in node_names:
-				ref_node = "ref_" + Array(i.split("/")).pop_back()
-				NodeHub.set(ref_node, get_node(i))
+	for i: String in node_names:
+		ref_node = "ref_" + Array(i.split("/")).pop_back()
+		NodeHub.set(ref_node, get_node(i))

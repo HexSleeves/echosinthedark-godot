@@ -1,6 +1,5 @@
 class_name InputTag
 
-
 const MOVE_LEFT: StringName = &"move_left"
 const MOVE_RIGHT: StringName = &"move_right"
 const MOVE_UP: StringName = &"move_up"
@@ -31,25 +30,24 @@ const LINE_UP: StringName = &"line_up"
 const PAGE_TOP: StringName = &"page_top"
 const PAGE_BOTTOM: StringName = &"page_bottom"
 
-
 const MOVE_ACTIONS: Array[StringName] = [
-    MOVE_LEFT,
-    MOVE_RIGHT,
-    MOVE_UP,
-    MOVE_DOWN,
+	MOVE_LEFT,
+	MOVE_RIGHT,
+	MOVE_UP,
+	MOVE_DOWN,
 ]
 
 const SWITCH_SCREEN_INPUTS: Array[StringName] = [
-    NEXT_SCREEN,
-    PREVIOUS_SCREEN,
+	NEXT_SCREEN,
+	PREVIOUS_SCREEN,
 ]
 
 const SCROLL_PAGE_INPUTS: Array[StringName] = [
-    PAGE_DOWN,
-    PAGE_UP,
-    LINE_DOWN,
-    LINE_UP,
-    # PAGE_BOTTOM (Shift + G) goes before PAGE_TOP (G).
-    PAGE_BOTTOM,
-    PAGE_TOP,
+	PAGE_DOWN,
+	PAGE_UP,
+	LINE_DOWN,
+	LINE_UP,
+	# PAGE_BOTTOM (Shift + G) goes before PAGE_TOP (G).
+	PAGE_BOTTOM,
+	PAGE_TOP,
 ]

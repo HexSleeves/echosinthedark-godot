@@ -1,7 +1,6 @@
 # class_name EndGame
 extends Node2D
 
-
 const PATH_TO_ROOT: String = "res://scene/main/main_screen.tscn"
 
 

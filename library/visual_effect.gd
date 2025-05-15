@@ -28,8 +28,7 @@ static func set_dark_color(sprite: Sprite2D) -> void:
 
 static func set_background_color() -> void:
 	var palette: Dictionary = TransferData.palette
-	RenderingServer.set_default_clear_color(Palette.get_color(palette,
-			MainTag.BACKGROUND, true))
+	RenderingServer.set_default_clear_color(Palette.get_color(palette, MainTag.BACKGROUND, true))
 
 
 static func set_visibility(sprite: Sprite2D, is_visible: bool) -> void:
