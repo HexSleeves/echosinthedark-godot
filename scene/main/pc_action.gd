@@ -1,8 +1,6 @@
 class_name PcAction
 extends Node2D
 
-signal ui_force_updated
-
 enum {
 	NORMAL_MODE,
 	AIM_MODE,
@@ -39,8 +37,8 @@ var _fov_map: Dictionary = Map2D.init_map(PcFov.DEFAULT_FOV_FLAG)
 var _shadow_cast_fov_data: ShadowCastFov.FovData = ShadowCastFov.FovData.new(GameData.PC_SIGHT_RANGE)
 var _cross_fov_data: CrossFov.FovData = (
 	CrossFov
-	.FovData
-	.new(
+	. FovData
+	. new(
 		GameData.CROSS_FOV_WIDTH,
 		GameData.PC_AIM_RANGE,
 		GameData.PC_AIM_RANGE,
@@ -74,7 +72,6 @@ func _on_SignalHub_turn_started(sprite: Sprite2D) -> void:
 		_is_first_turn = false
 
 	GameProgress.update_world(NodeHub.ref_DataHub, NodeHub.ref_RandomNumber)
-
 	render_fov()
 
 	_alert_duration = max(0, _alert_duration - 1)
@@ -89,11 +86,11 @@ func _on_SignalHub_action_pressed(input_tag: StringName) -> void:
 	match input_tag:
 		InputTag.ADD_AMMO:
 			_ammo = _get_valid_ammo(_ammo + 1)
-			ui_force_updated.emit()
+			NodeHub.ref_SignalHub.ui_force_updated.emit()
 			return
 		InputTag.ADD_HIT:
 			_add_enemy_count()
-			ui_force_updated.emit()
+			NodeHub.ref_SignalHub.ui_force_updated.emit()
 			return
 		InputTag.AIM:
 			NodeHub.ref_DataHub.set_game_mode(_aim(pc, _ammo, game_mode))
@@ -145,6 +142,7 @@ func _on_SignalHub_game_over(player_win: bool) -> void:
 	if not player_win:
 		VisualEffect.set_dark_color(NodeHub.ref_DataHub.pc)
 
+
 # func _handle_normal_input(input_tag: StringName) -> bool:
 # 	match input_tag:
 # 		InputTag.MOVE_LEFT:
@@ -161,6 +159,7 @@ func _on_SignalHub_game_over(player_win: bool) -> void:
 
 # func _handle_aim_input(input_tag: StringName) -> bool:
 # 	return true
+
 
 func _pick_ammo(pc: Sprite2D, coord: Vector2i, current_ammo: int) -> int:
 	SpriteFactory.remove_sprite(SpriteState.get_trap_by_coord(coord))
