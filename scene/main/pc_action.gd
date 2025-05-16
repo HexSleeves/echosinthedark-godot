@@ -37,8 +37,8 @@ var _fov_map: Dictionary = Map2D.init_map(PcFov.DEFAULT_FOV_FLAG)
 var _shadow_cast_fov_data: ShadowCastFov.FovData = ShadowCastFov.FovData.new(GameData.PC_SIGHT_RANGE)
 var _cross_fov_data: CrossFov.FovData = (
 	CrossFov
-	. FovData
-	. new(
+	.FovData
+	.new(
 		GameData.CROSS_FOV_WIDTH,
 		GameData.PC_AIM_RANGE,
 		GameData.PC_AIM_RANGE,
@@ -47,10 +47,8 @@ var _cross_fov_data: CrossFov.FovData = (
 	)
 )
 
-
 func render_fov() -> void:
 	PcFov.render_fov(NodeHub.ref_DataHub.pc, _fov_map, _cross_fov_data, _shadow_cast_fov_data)
-
 
 func _on_SignalHub_sprite_created(tagged_sprites: Array) -> void:
 	for i: TaggedSprite in tagged_sprites:
@@ -59,7 +57,6 @@ func _on_SignalHub_sprite_created(tagged_sprites: Array) -> void:
 				if NodeHub.ref_DataHub.pc != null:
 					continue
 				NodeHub.ref_DataHub.set_pc(i.sprite)
-
 
 func _on_SignalHub_turn_started(sprite: Sprite2D) -> void:
 	if not sprite.is_in_group(SubTag.PC):
@@ -77,7 +74,6 @@ func _on_SignalHub_turn_started(sprite: Sprite2D) -> void:
 	_alert_duration = max(0, _alert_duration - 1)
 	# print("%d, %d" % [enemy_count, progress_bar])
 
-
 func _on_SignalHub_action_pressed(input_tag: StringName) -> void:
 	var coord: Vector2i
 	var pc: Sprite2D = NodeHub.ref_DataHub.pc
@@ -93,7 +89,8 @@ func _on_SignalHub_action_pressed(input_tag: StringName) -> void:
 			NodeHub.ref_SignalHub.ui_force_updated.emit()
 			return
 		InputTag.AIM:
-			NodeHub.ref_DataHub.set_game_mode(_aim(pc, _ammo, game_mode))
+			var new_mode: int = _aim(pc, _ammo, game_mode)
+			NodeHub.ref_DataHub.set_game_mode(new_mode)
 			render_fov()
 			return
 		InputTag.MOVE_LEFT:
@@ -111,6 +108,7 @@ func _on_SignalHub_action_pressed(input_tag: StringName) -> void:
 	match game_mode:
 		AIM_MODE:
 			game_mode = _aim(pc, _ammo, game_mode)
+			NodeHub.ref_DataHub.set_game_mode(game_mode)
 			_ammo = _shoot(pc, coord, _ammo)
 			if game_mode == NORMAL_MODE:
 				_alert_hound(pc)
@@ -129,19 +127,16 @@ func _on_SignalHub_action_pressed(input_tag: StringName) -> void:
 				return
 			elif SpriteState.has_trap_at_coord(coord):
 				_ammo = _pick_ammo(pc, coord, _ammo)
-				# print(ammo)
 				_end_turn()
 				return
 			_move(coord)
 			_end_turn()
 			return
 
-
 func _on_SignalHub_game_over(player_win: bool) -> void:
 	render_fov()
 	if not player_win:
 		VisualEffect.set_dark_color(NodeHub.ref_DataHub.pc)
-
 
 # func _handle_normal_input(input_tag: StringName) -> bool:
 # 	match input_tag:
@@ -160,16 +155,13 @@ func _on_SignalHub_game_over(player_win: bool) -> void:
 # func _handle_aim_input(input_tag: StringName) -> bool:
 # 	return true
 
-
 func _pick_ammo(pc: Sprite2D, coord: Vector2i, current_ammo: int) -> int:
 	SpriteFactory.remove_sprite(SpriteState.get_trap_by_coord(coord))
 	SpriteState.move_sprite(pc, coord)
 	return _get_valid_ammo(current_ammo + GameData.MAGAZINE)
 
-
 func _get_valid_ammo(current_ammo: int) -> int:
 	return max(min(current_ammo, GameData.MAX_AMMO), GameData.MIN_AMMO)
-
 
 func _aim(pc: Sprite2D, current_ammo: int, current_mode: int) -> int:
 	match current_mode:
@@ -180,8 +172,8 @@ func _aim(pc: Sprite2D, current_ammo: int, current_mode: int) -> int:
 			if current_ammo > GameData.MIN_AMMO:
 				VisualEffect.switch_sprite(pc, VisualTag.ACTIVE)
 				return AIM_MODE
-	return NORMAL_MODE
 
+	return NORMAL_MODE
 
 func _shoot(pc: Sprite2D, coord: Vector2i, current_ammo: int) -> int:
 	var coords: Array
@@ -197,7 +189,6 @@ func _shoot(pc: Sprite2D, coord: Vector2i, current_ammo: int) -> int:
 		if actor != null:
 			_kill_hound(actor, target_coord)
 	return _get_valid_ammo(current_ammo - 1)
-
 
 func _kick_back(pc: Sprite2D, coord: Vector2i) -> void:
 	var coords: Array
@@ -218,11 +209,9 @@ func _kick_back(pc: Sprite2D, coord: Vector2i) -> void:
 		SpriteState.move_sprite(actor, target_coord)
 		NodeHub.ref_ActorAction.hit_actor(actor)
 
-
 func _move(coord: Vector2i) -> void:
 	var pc: Sprite2D = NodeHub.ref_DataHub.pc
 	SpriteState.move_sprite(pc, coord)
-
 
 func _is_impassable(coord: Vector2i) -> bool:
 	if not DungeonSize.is_in_dungeon(coord):
@@ -233,10 +222,8 @@ func _is_impassable(coord: Vector2i) -> bool:
 		return true
 	return false
 
-
 func _block_shoot_ray(_source_coord: Vector2i, target_coord: Vector2i, _args: Array) -> bool:
 	return _is_impassable(target_coord)
-
 
 func _block_hit_back_ray(source_coord: Vector2i, target_coord: Vector2i, _args: Array) -> bool:
 	var ray_length_squared: int = (source_coord - target_coord).length_squared()
@@ -250,12 +237,10 @@ func _block_hit_back_ray(source_coord: Vector2i, target_coord: Vector2i, _args: 
 		return true
 	return _is_impassable(target_coord)
 
-
 func _kill_hound(sprite: Sprite2D, coord: Vector2i) -> void:
 	_add_enemy_count()
 	SpriteFactory.remove_sprite(sprite)
 	SpriteFactory.create_trap(SubTag.BULLET, coord, true)
-
 
 func _end_turn() -> void:
 	_subtract_progress_bar()
@@ -264,16 +249,13 @@ func _end_turn() -> void:
 	else:
 		NodeHub.ref_Schedule.start_next_turn()
 
-
 func _alert_hound(pc: Sprite2D) -> void:
 	_alert_duration = GameData.MAX_ALERT_DURATION
 	_alert_coord = ConvertCoord.get_coord(pc)
 
-
 func _add_enemy_count() -> void:
 	_enemy_count = min(enemy_count + 1, GameData.MAX_ENEMY_COUNT)
 	_progress_bar = GameData.MAX_PROGRES_BAR + 1
-
 
 func _subtract_progress_bar() -> void:
 	if _progress_bar > GameData.MIN_PROGRESS_BAR:
