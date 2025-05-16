@@ -1,6 +1,5 @@
 class_name FileIo
 
-
 static func read_as_text(path_to_file: String) -> ParsedFile:
 	var file: FileAccess = FileAccess.open(path_to_file, FileAccess.READ)
 	var parsed: ParsedFile = ParsedFile.new()
@@ -11,7 +10,6 @@ static func read_as_text(path_to_file: String) -> ParsedFile:
 	else:
 		parsed.parse_success = false
 	return parsed
-
 
 static func read_as_line(path_to_file: String) -> ParsedFile:
 	var file: FileAccess = FileAccess.open(path_to_file, FileAccess.READ)
@@ -29,7 +27,6 @@ static func read_as_line(path_to_file: String) -> ParsedFile:
 		row += 1
 	return parsed
 
-
 static func read_as_json(path_to_file: String) -> ParsedFile:
 	var parsed: ParsedFile = read_as_text(path_to_file)
 	var json: JSON = JSON.new()
@@ -40,7 +37,6 @@ static func read_as_json(path_to_file: String) -> ParsedFile:
 		parsed.parse_success = false
 	return parsed
 
-
 static func get_files(path_to_directory: String) -> Array:
 	var dir: DirAccess = DirAccess.open(path_to_directory)
 	var files: Array = []
@@ -49,7 +45,6 @@ static func get_files(path_to_directory: String) -> Array:
 		files = dir.get_files()
 		ArrayHelper.map(files, FileIo._get_full_path, [path_to_directory])
 	return files
-
 
 static func _get_full_path(file_name: String, args: Array) -> String:
 	var path: String = args[0]
